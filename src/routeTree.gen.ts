@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FinishesRouteImport } from './routes/finishes'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TodosRouteImport } from './routes/todos'
 import { Route as WorksRouteImport } from './routes/works'
@@ -17,6 +18,11 @@ import { Route as WorksRouteImport } from './routes/works'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinishesRoute = FinishesRouteImport.update({
+  id: '/finishes',
+  path: '/finishes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -37,12 +43,14 @@ const WorksRoute = WorksRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/finishes': typeof FinishesRoute
   '/settings': typeof SettingsRoute
   '/todos': typeof TodosRoute
   '/works': typeof WorksRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/finishes': typeof FinishesRoute
   '/settings': typeof SettingsRoute
   '/todos': typeof TodosRoute
   '/works': typeof WorksRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/finishes': typeof FinishesRoute
   '/settings': typeof SettingsRoute
   '/todos': typeof TodosRoute
   '/works': typeof WorksRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/settings' | '/todos' | '/works'
+  fullPaths: '/' | '/finishes' | '/settings' | '/todos' | '/works'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/settings' | '/todos' | '/works'
-  id: '__root__' | '/' | '/settings' | '/todos' | '/works'
+  to: '/' | '/finishes' | '/settings' | '/todos' | '/works'
+  id: '__root__' | '/' | '/finishes' | '/settings' | '/todos' | '/works'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FinishesRoute: typeof FinishesRoute
   SettingsRoute: typeof SettingsRoute
   TodosRoute: typeof TodosRoute
   WorksRoute: typeof WorksRoute
@@ -76,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finishes': {
+      id: '/finishes'
+      path: '/finishes'
+      fullPath: '/finishes'
+      preLoaderRoute: typeof FinishesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FinishesRoute: FinishesRoute,
   SettingsRoute: SettingsRoute,
   TodosRoute: TodosRoute,
   WorksRoute: WorksRoute,

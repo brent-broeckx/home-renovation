@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  balanceItems,
   calcLineItem,
   calcTotals,
   collectDeadlines,
@@ -66,6 +67,21 @@ function makeInstallment(
 }
 
 const BUDGET = { loanAmount: 100_000, ownContribution: 20_000 }
+
+describe('balanceItems', () => {
+  it('uses works and finishes for shared saldo panels, not utility requests', () => {
+    const items = [
+      makeItem({ type: 'work', description: 'Ruwbouw' }),
+      makeItem({ type: 'finish', description: 'Vloer' }),
+      makeItem({ type: 'request', description: 'Elektriciteitsaansluiting' }),
+    ]
+
+    expect(balanceItems(items).map((item) => item.type)).toEqual([
+      'work',
+      'finish',
+    ])
+  })
+})
 
 describe('calcLineItem', () => {
   it('only counts as paid when the invoice was received AND it is paid', () => {

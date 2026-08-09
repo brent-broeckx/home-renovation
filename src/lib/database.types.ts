@@ -3,7 +3,7 @@
  * Mirrors the SQL in `supabase/migrations`.
  */
 
-export type LineItemType = 'work' | 'request'
+export type LineItemType = 'work' | 'request' | 'finish'
 export type FundingSource = 'loan' | 'own'
 
 export interface SettingsRow {

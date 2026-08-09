@@ -90,6 +90,7 @@ interface LineItemDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   item: LineItem | null
+  fixedType?: LineItemType
   suppliers: Array<SupplierRow>
   settings: SettingsRow
   saving: boolean
@@ -100,6 +101,7 @@ export function LineItemDialog({
   open,
   onOpenChange,
   item,
+  fixedType,
   suppliers,
   settings,
   saving,
@@ -110,8 +112,13 @@ export function LineItemDialog({
   )
 
   useEffect(() => {
-    if (open) setDraft(toDraft(item, settings))
-  }, [open, item, settings])
+    if (open) {
+      setDraft({
+        ...toDraft(item, settings),
+        ...(fixedType ? { type: fixedType } : {}),
+      })
+    }
+  }, [open, item, settings, fixedType])
 
   const amountIncl = roundCents(
     draft.amount_excl_vat * (1 + draft.vat_rate / 100),
@@ -126,6 +133,7 @@ export function LineItemDialog({
     if (!draft.description.trim()) return
     onSave({
       ...draft,
+      ...(fixedType ? { type: fixedType } : {}),
       description: draft.description.trim(),
       attachment_url: draft.attachment_url?.trim() || null,
     })
@@ -144,33 +152,35 @@ export function LineItemDialog({
         <DialogHeader>
           <DialogTitle>{item ? 'Regel bewerken' : 'Nieuwe regel'}</DialogTitle>
           <DialogDescription>
-            Werk of aanvraag met bedragen, status en betaaldatum.
+            Regel met bedragen, status en betaaldatum.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Type</Label>
-              <Select
-                value={draft.type}
-                onValueChange={(value) =>
-                  patch({ type: value as LineItemType })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="work">Verbouwwerk</SelectItem>
-                  <SelectItem value="request">
-                    Aanvraag / aansluiting
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {fixedType ? null : (
+              <div className="space-y-1.5">
+                <Label>Type</Label>
+                <Select
+                  value={draft.type}
+                  onValueChange={(value) =>
+                    patch({ type: value as LineItemType })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="work">Verbouwwerk</SelectItem>
+                    <SelectItem value="request">
+                      Aanvraag / aansluiting
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-            <div className="space-y-1.5">
+            <div className={fixedType ? 'col-span-2 space-y-1.5' : 'space-y-1.5'}>
               <Label>Financiering</Label>
               <Select
                 value={draft.source}

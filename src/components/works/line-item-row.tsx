@@ -10,6 +10,7 @@ import {
   Link2,
   MessageSquare,
   MoreVertical,
+  Paintbrush,
   Pencil,
   Plug,
   ReceiptEuro,
@@ -83,8 +84,10 @@ export function LineItemRow({
   const [openPanel, setOpenPanel] = useState<
     'comments' | 'installments' | null
   >(null)
-  const isWork = item.type === 'work'
-  const TypeIcon = isWork ? Wrench : Plug
+  const isRequest = item.type === 'request'
+  const canHaveInstallments = item.type !== 'request'
+  const TypeIcon =
+    item.type === 'work' ? Wrench : item.type === 'finish' ? Paintbrush : Plug
   const money = (value: number) =>
     formatCurrency(value, settings.locale, settings.currency)
 
@@ -100,12 +103,20 @@ export function LineItemRow({
         {/* Identity ------------------------------------------------ */}
         <div className="flex min-w-0 flex-1 items-start gap-2.5">
           <span
-            title={isWork ? 'Verbouwwerk' : 'Aanvraag / aansluiting'}
+            title={
+              item.type === 'work'
+                ? 'Verbouwwerk'
+                : item.type === 'finish'
+                  ? 'Afwerking'
+                  : 'Aanvraag / aansluiting'
+            }
             className={cn(
               'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg',
-              isWork
+              item.type === 'work'
                 ? 'bg-slate-100 text-slate-700'
-                : 'bg-teal-100 text-teal-700',
+                : item.type === 'finish'
+                  ? 'bg-rose-100 text-rose-700'
+                  : 'bg-teal-100 text-teal-700',
             )}
           >
             <TypeIcon className="size-4" />
@@ -201,7 +212,7 @@ export function LineItemRow({
 
         {/* Statuses ------------------------------------------------ */}
         <div className="flex flex-wrap items-center gap-1.5 lg:shrink-0">
-          {!isWork ? (
+          {isRequest ? (
             <StatusToggle
               icon={Send}
               label="Aangevraagd"
@@ -292,7 +303,7 @@ export function LineItemRow({
               </Button>
             </CollapsibleTrigger>
 
-            {isWork ? (
+            {canHaveInstallments ? (
               <Button
                 variant="ghost"
                 size="sm"
@@ -319,7 +330,7 @@ export function LineItemRow({
           </CollapsibleContent>
         </Collapsible>
 
-        {openPanel === 'installments' && isWork ? (
+        {openPanel === 'installments' && canHaveInstallments ? (
           <div className="w-full pb-3 pt-2">
             <InstallmentsEditor
               installments={item.installments}

@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { Loader2, Plus, Search, SlidersHorizontal } from 'lucide-react'
+import { Loader2, Paintbrush, Plus, Search, SlidersHorizontal } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Card, CardContent } from '#/components/ui/card'
-import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs'
 import {
   Select,
   SelectContent,
@@ -43,12 +42,11 @@ import type {
   SettingsRow,
 } from '#/lib/database.types'
 
-export const Route = createFileRoute('/works')({ component: WorksPage })
+export const Route = createFileRoute('/finishes')({ component: FinishesPage })
 
-type TypeFilter = 'all' | 'work' | 'request'
 type StatusFilter = 'all' | 'open' | 'unpaid' | 'unrequested' | 'paid'
 
-function WorksPage() {
+function FinishesPage() {
   const settingsQuery = useSettings()
   const suppliersQuery = useSuppliers()
   const lineItemsQuery = useLineItems()
@@ -62,7 +60,6 @@ function WorksPage() {
   const deleteComment = useDeleteComment()
 
   const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [showDisabled, setShowDisabled] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -78,10 +75,7 @@ function WorksPage() {
     })
   const suppliers = suppliersQuery.data ?? []
   const items = useMemo(
-    () =>
-      (lineItemsQuery.data ?? []).filter(
-        (item) => item.type === 'work' || item.type === 'request',
-      ),
+    () => (lineItemsQuery.data ?? []).filter((item) => item.type === 'finish'),
     [lineItemsQuery.data],
   )
   const balanceScopeItems = useMemo(
@@ -109,7 +103,6 @@ function WorksPage() {
     const needle = search.trim().toLowerCase()
     return items.filter((item) => {
       if (!showDisabled && item.disabled) return false
-      if (typeFilter !== 'all' && item.type !== typeFilter) return false
 
       if (needle) {
         const supplierName =
@@ -133,15 +126,7 @@ function WorksPage() {
           return true
       }
     })
-  }, [
-    items,
-    search,
-    showDisabled,
-    typeFilter,
-    statusFilter,
-    calcs,
-    supplierById,
-  ])
+  }, [items, search, showDisabled, statusFilter, calcs, supplierById])
 
   function openCreate() {
     setEditing(null)
@@ -160,6 +145,7 @@ function WorksPage() {
     } else {
       await createLineItem.mutateAsync({
         ...values,
+        type: 'finish',
         description: values.description ?? '',
         sort_order: items.length,
       })
@@ -193,7 +179,7 @@ function WorksPage() {
 
   function handleDuplicate(item: LineItem) {
     void createLineItem.mutateAsync({
-      type: item.type,
+      type: 'finish',
       description: `${item.description} (kopie)`,
       supplier_id: item.supplier_id,
       amount_excl_vat: Number(item.amount_excl_vat),
@@ -212,22 +198,22 @@ function WorksPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Werken &amp; aanvragen
+          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
+            <Paintbrush className="size-6 text-rose-700" />
+            Afwerkingen
           </h1>
           <p className="text-sm text-muted-foreground">
-            Alle verbouwwerken en nutsaanvragen op één lijst.
+            Vloeren, badkamer, toilet, verlichting, kasten en andere afwerking.
           </p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="size-4" />
-          Nieuwe regel
+          Nieuwe afwerking
         </Button>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-3">
-          {/* Filters ------------------------------------------------ */}
           <Card>
             <CardContent className="flex flex-wrap items-center gap-2 py-3">
               <div className="relative min-w-[10rem] flex-1">
@@ -239,17 +225,6 @@ function WorksPage() {
                   className="pl-8"
                 />
               </div>
-
-              <Tabs
-                value={typeFilter}
-                onValueChange={(value) => setTypeFilter(value as TypeFilter)}
-              >
-                <TabsList>
-                  <TabsTrigger value="all">Alles</TabsTrigger>
-                  <TabsTrigger value="work">Werken</TabsTrigger>
-                  <TabsTrigger value="request">Aanvragen</TabsTrigger>
-                </TabsList>
-              </Tabs>
 
               <Select
                 value={statusFilter}
@@ -272,12 +247,12 @@ function WorksPage() {
 
               <div className="flex items-center gap-2">
                 <Switch
-                  id="show-disabled"
+                  id="show-disabled-finishes"
                   checked={showDisabled}
                   onCheckedChange={setShowDisabled}
                 />
                 <Label
-                  htmlFor="show-disabled"
+                  htmlFor="show-disabled-finishes"
                   className="text-xs text-muted-foreground"
                 >
                   Uitgeschakelde tonen
@@ -286,14 +261,12 @@ function WorksPage() {
             </CardContent>
           </Card>
 
-          {/* Mobile calculation summary ------------------------------ */}
           <CalcPanel
             totals={totals}
             settings={settings}
             className="lg:hidden"
           />
 
-          {/* List --------------------------------------------------- */}
           {loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -301,11 +274,11 @@ function WorksPage() {
           ) : visibleItems.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                Geen regels gevonden.
+                Geen afwerkingen gevonden.
                 <div className="mt-3">
                   <Button variant="outline" onClick={openCreate}>
                     <Plus className="size-4" />
-                    Eerste regel toevoegen
+                    Eerste afwerking toevoegen
                   </Button>
                 </div>
               </CardContent>
@@ -348,8 +321,6 @@ function WorksPage() {
                           label: part.label,
                           percentage: part.percentage || null,
                           amount: part.amount,
-                          // Inherit the line-item flag the schedule takes over
-                          // from, so nothing silently reverts to "not requested".
                           requested_from_bank: item.requested_from_bank,
                           source: item.source,
                           sort_order: item.installments.length + index,
@@ -367,7 +338,6 @@ function WorksPage() {
           )}
         </div>
 
-        {/* Sticky sidebar ------------------------------------------- */}
         <aside className="hidden lg:block">
           <div className="sticky top-[4.5rem]">
             <CalcPanel totals={totals} settings={settings} />
@@ -382,6 +352,7 @@ function WorksPage() {
           if (!open) setEditing(null)
         }}
         item={editing}
+        fixedType="finish"
         suppliers={suppliers}
         settings={settings}
         saving={createLineItem.isPending || updateLineItem.isPending}

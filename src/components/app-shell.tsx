@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   ListTodo,
   LogOut,
+  Paintbrush,
   Settings,
 } from 'lucide-react'
 import { Button } from '#/components/ui/button'
@@ -15,6 +16,7 @@ import { useAuth } from '#/components/auth-provider'
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/works', label: 'Werken', icon: HardHat },
+  { to: '/finishes', label: 'Afwerkingen', icon: Paintbrush },
   { to: '/todos', label: "To-do's", icon: ListTodo },
   { to: '/settings', label: 'Instellingen', icon: Settings },
 ] as const
@@ -79,7 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile bottom navigation - thumb reachable while standing on site. */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-5">
           {NAV.map((item) => (
             <Link
               key={item.to}

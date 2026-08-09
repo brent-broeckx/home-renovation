@@ -15,6 +15,7 @@ phone or desktop browser.
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Dashboard**          | Read-only overview: loan capacity, actually drawn, actually remaining, simulated remaining, plus every invoice/installment falling due inside the configurable warning window (default 14 days), sorted by urgency and flagged with whether the money was already requested from the bank.                                                                                          |
 | **Werken & aanvragen** | One combined list of works and utility requests, distinguished by a leading icon. Per row: supplier, amount excl./incl. VAT, loan-vs-own funding switch, one-click status pills (offer / invoice / requested from bank / paid / submitted), attachment link, enable-disable toggle, optional installment schedule with per-installment funding source, and collapsible comments. Sticky calculation panel on the right. |
+| **Afwerkingen**        | Separate page for finishing items such as flooring, bathroom, toilet, lights and cabinets. Same fast row UI, status pills, comments, installment schedules and sticky actual/simulation panel as the works page, but kept out of the works/request list.                                                                                                     |
 | **Instellingen**       | Loan amount, own contribution, default + available VAT rates, deadline warning window, currency/locale, and the supplier list.                                                                                                                                                                                                                                                      |
 | **To-do's**            | Running renovation to-do list with due dates, priority and manual ordering.                                                                                                                                                                                                                                                                                                         |
 
@@ -42,6 +43,11 @@ or your own savings. Items with installments contribute the sum of their schedul
 by each installment's own funding source; if that sum differs from the item total, the
 row shows a "Schijven ≠ totaal" warning.
 
+The actual and simulation panels are global renovation balances: they always use all
+active **works + finishes** together, whether you are viewing the Works page, the
+Finishes page, or the Dashboard. Utility requests keep their own list/statuses and
+deadlines, but they do not change the renovation loan/own-contribution saldo.
+
 Deadlines follow the same rule: items with installments contribute **one deadline per
 unpaid installment**, everything else contributes its own due date.
 
@@ -50,7 +56,7 @@ unpaid installment**, everything else contributes its own due date.
 ## 1. Supabase setup
 
 1. Create a free project at [supabase.com](https://supabase.com).
-2. **Run the migrations.** Either paste the two files from `supabase/migrations/` into the
+2. **Run the migrations.** Either paste the files from `supabase/migrations/` into the
    SQL editor (in filename order), or use the CLI:
 
    ```bash
@@ -141,7 +147,7 @@ pnpm lint        # eslint
 settings      one row per user: loan_amount, own_contribution, default_vat_rate,
               vat_rates[], deadline_warning_days, currency, locale
 suppliers     name, contact, email, phone, website, notes
-line_items    type (work|request), description, supplier_id, amount_excl_vat, vat_rate,
+line_items    type (work|request|finish), description, supplier_id, amount_excl_vat, vat_rate,
               amount_incl_vat (generated), source (loan|own), offer_received,
               invoice_received, requested_from_bank, paid, request_submitted,
               due_date, attachment_url, disabled, sort_order

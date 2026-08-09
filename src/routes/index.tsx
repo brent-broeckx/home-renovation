@@ -6,6 +6,7 @@ import {
   FlaskConical,
   Landmark,
   Loader2,
+  Paintbrush,
   Plug,
   TriangleAlert,
   Wrench,
@@ -27,7 +28,7 @@ import {
   useSettings,
   useSuppliers,
 } from '#/lib/api'
-import { calcTotals, upcomingDeadlines } from '#/lib/calculations'
+import { balanceItems, calcTotals, upcomingDeadlines } from '#/lib/calculations'
 import { formatCurrency, formatDate } from '#/lib/format'
 import { cn } from '#/lib/utils'
 import type { SettingsRow } from '#/lib/database.types'
@@ -49,15 +50,16 @@ function DashboardPage() {
       updated_at: '',
     })
   const items = useMemo(() => lineItemsQuery.data ?? [], [lineItemsQuery.data])
+  const balanceScopeItems = useMemo(() => balanceItems(items), [items])
 
   const totals = useMemo(
     () =>
       calcTotals({
-        items,
+        items: balanceScopeItems,
         loanAmount: Number(settings.loan_amount),
         ownContribution: Number(settings.own_contribution),
       }),
-    [items, settings.loan_amount, settings.own_contribution],
+    [balanceScopeItems, settings.loan_amount, settings.own_contribution],
   )
 
   const deadlines = useMemo(
@@ -146,7 +148,12 @@ function DashboardPage() {
             ) : (
               <ul className="divide-y">
                 {deadlines.map((entry) => {
-                  const TypeIcon = entry.lineItemType === 'work' ? Wrench : Plug
+                  const TypeIcon =
+                    entry.lineItemType === 'work'
+                      ? Wrench
+                      : entry.lineItemType === 'finish'
+                        ? Paintbrush
+                        : Plug
                   return (
                     <li
                       key={entry.key}
@@ -157,7 +164,9 @@ function DashboardPage() {
                           'flex size-7 shrink-0 items-center justify-center rounded-md',
                           entry.lineItemType === 'work'
                             ? 'bg-slate-100 text-slate-700'
-                            : 'bg-teal-100 text-teal-700',
+                            : entry.lineItemType === 'finish'
+                              ? 'bg-rose-100 text-rose-700'
+                              : 'bg-teal-100 text-teal-700',
                         )}
                       >
                         <TypeIcon className="size-3.5" />
