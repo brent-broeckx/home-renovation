@@ -69,7 +69,7 @@ function makeInstallment(
 const BUDGET = { loanAmount: 100_000, ownContribution: 20_000 }
 
 describe('balanceItems', () => {
-  it('uses works and finishes for shared saldo panels, not utility requests', () => {
+  it('uses every financial item type for shared saldo panels', () => {
     const items = [
       makeItem({ type: 'work', description: 'Ruwbouw' }),
       makeItem({ type: 'finish', description: 'Vloer' }),
@@ -79,6 +79,7 @@ describe('balanceItems', () => {
     expect(balanceItems(items).map((item) => item.type)).toEqual([
       'work',
       'finish',
+      'request',
     ])
   })
 })

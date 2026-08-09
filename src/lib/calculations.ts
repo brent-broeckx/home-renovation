@@ -266,13 +266,9 @@ export interface TotalsInput {
   ownContribution: number
 }
 
-/**
- * Balances are global renovation balances, not page-local counters. Utility
- * requests keep their own deadlines/statuses, but the actual/simulation saldo
- * is based on works plus finishes.
- */
+/** Balances are global renovation balances, not page-local counters. */
 export function balanceItems(items: Array<LineItem>): Array<LineItem> {
-  return items.filter((item) => item.type === 'work' || item.type === 'finish')
+  return items
 }
 
 export function calcTotals({

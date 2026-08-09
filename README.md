@@ -44,9 +44,9 @@ by each installment's own funding source; if that sum differs from the item tota
 row shows a "Schijven ≠ totaal" warning.
 
 The actual and simulation panels are global renovation balances: they always use all
-active **works + finishes** together, whether you are viewing the Works page, the
-Finishes page, or the Dashboard. Utility requests keep their own list/statuses and
-deadlines, but they do not change the renovation loan/own-contribution saldo.
+active **works + utility requests + finishes** together, whether you are viewing the
+Works page, the Finishes page, or the Dashboard. The pages only split the list view;
+the money picture stays shared.
 
 Deadlines follow the same rule: items with installments contribute **one deadline per
 unpaid installment**, everything else contributes its own due date.
