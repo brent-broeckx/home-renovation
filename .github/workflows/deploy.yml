@@ -20,6 +20,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
     steps:
       - uses: actions/checkout@v4
 
@@ -50,9 +52,14 @@ jobs:
       - name: Build
         env:
           BASE_PATH: ${{ steps.base.outputs.path }}
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
-        run: pnpm build
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+            echo "Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Add them as GitHub repository variables, repository secrets, or github-pages environment variables."
+            exit 1
+          fi
+          pnpm build
 
       - name: Add SPA fallback and disable Jekyll
         run: |
