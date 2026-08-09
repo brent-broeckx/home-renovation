@@ -182,11 +182,21 @@ export function LineItemRow({
             </p>
           </div>
 
-          <SourceSwitch
-            value={item.source}
-            disabled={item.disabled}
-            onChange={(source) => onPatch({ source })}
-          />
+          {calc.hasInstallments ? (
+            <span
+              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border bg-muted px-2.5 text-xs font-medium text-muted-foreground"
+              title="Per schijf kiezen tussen lening en eigen geld"
+            >
+              <Layers className="size-3.5" />
+              Schijven
+            </span>
+          ) : (
+            <SourceSwitch
+              value={item.source}
+              disabled={item.disabled}
+              onChange={(source) => onPatch({ source })}
+            />
+          )}
         </div>
 
         {/* Statuses ------------------------------------------------ */}

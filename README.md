@@ -14,7 +14,7 @@ phone or desktop browser.
 | Page                   | What it does                                                                                                                                                                                                                                                                                                                                                                        |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Dashboard**          | Read-only overview: loan capacity, actually drawn, actually remaining, simulated remaining, plus every invoice/installment falling due inside the configurable warning window (default 14 days), sorted by urgency and flagged with whether the money was already requested from the bank.                                                                                          |
-| **Werken & aanvragen** | One combined list of works and utility requests, distinguished by a leading icon. Per row: supplier, amount excl./incl. VAT, loan-vs-own funding switch, one-click status pills (offer / invoice / requested from bank / paid / submitted), attachment link, enable-disable toggle, optional installment schedule, and collapsible comments. Sticky calculation panel on the right. |
+| **Werken & aanvragen** | One combined list of works and utility requests, distinguished by a leading icon. Per row: supplier, amount excl./incl. VAT, loan-vs-own funding switch, one-click status pills (offer / invoice / requested from bank / paid / submitted), attachment link, enable-disable toggle, optional installment schedule with per-installment funding source, and collapsible comments. Sticky calculation panel on the right. |
 | **Instellingen**       | Loan amount, own contribution, default + available VAT rates, deadline warning window, currency/locale, and the supplier list.                                                                                                                                                                                                                                                      |
 | **To-do's**            | Running renovation to-do list with due dates, priority and manual ordering.                                                                                                                                                                                                                                                                                                         |
 
@@ -28,17 +28,19 @@ This is the heart of the app, so it is implemented as pure functions in
 Only money that really left the account is subtracted:
 
 - a line item counts only when **invoice received AND paid**;
-- when an item has **installments**, they fully override the single `paid` and
-  `requested from bank` checkboxes — only the **paid installments** count, and each
-  installment is requested from the bank on its own;
+- when an item has **installments**, they fully override the single funding source,
+  `paid`, and `requested from bank` controls — every installment chooses **loan** or
+  **own contribution** independently, only the **paid installments** count, and each
+  loan-funded installment is requested from the bank on its own;
 - **disabled** rows never count.
 
 **Simulation** — two parallel forward-looking balances (loan and own contribution).
 **Every active row counts in full**, regardless of offer/invoice/requested/paid status,
 charged to the balance chosen by its funding source. A quote you have not paid a cent on
 is already subtracted, so you can see up-front whether a work should come out of the loan
-or your own savings. Items with installments contribute the sum of their schedule; if
-that sum differs from the item total, the row shows a "Schijven ≠ totaal" warning.
+or your own savings. Items with installments contribute the sum of their schedule, split
+by each installment's own funding source; if that sum differs from the item total, the
+row shows a "Schijven ≠ totaal" warning.
 
 Deadlines follow the same rule: items with installments contribute **one deadline per
 unpaid installment**, everything else contributes its own due date.
@@ -143,7 +145,7 @@ line_items    type (work|request), description, supplier_id, amount_excl_vat, va
               amount_incl_vat (generated), source (loan|own), offer_received,
               invoice_received, requested_from_bank, paid, request_submitted,
               due_date, attachment_url, disabled, sort_order
-installments  line_item_id, label, amount, percentage, due_date, paid,
+installments  line_item_id, label, amount, percentage, source (loan|own), due_date, paid,
               requested_from_bank, sort_order
 comments      line_item_id, body, created_at
 todos         title, notes, done, due_date, priority, sort_order, completed_at

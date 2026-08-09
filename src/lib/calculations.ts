@@ -12,8 +12,10 @@
  *
  * 2. SIMULATION - forward looking. Every active line item counts in full,
  *    whatever its offer/invoice/requested/paid status, charged against the
- *    balance selected by its `source` (loan or own contribution). This answers
- *    "if I end up paying for everything on this list, what is left?".
+ *    balance selected by its `source` (loan or own contribution). With
+ *    installments configured, every installment has its own source and the
+ *    parent source becomes a summary only. This answers "if I end up paying for
+ *    everything on this list, what is left?".
  *
  * Disabled rows are excluded from both, always. Amounts are incl. VAT, because
  * that is what actually gets transferred to the contractor.
@@ -38,15 +40,23 @@ export interface LineItemCalc {
   installmentPaidTotal: number
   /** Money that has actually been spent for this item. */
   paidAmount: number
+  /** Actually spent from the renovation loan. */
+  actualLoanAmount: number
+  /** Actually spent from own contribution. */
+  actualOwnAmount: number
   /** Money still to be spent for this item. */
   outstandingAmount: number
   /** Amount charged against the simulated balance. */
   simulatedAmount: number
+  /** Simulated amount charged against the renovation loan. */
+  simulatedLoanAmount: number
+  /** Simulated amount charged against own contribution. */
+  simulatedOwnAmount: number
   /** Derived paid status - installments win over the top-level flag. */
   isPaid: boolean
   /** Derived bank status - installments win over the top-level flag. */
   isRequestedFromBank: boolean
-  /** Outstanding money that has not been requested from the bank yet. */
+  /** Loan-funded outstanding money that has not been requested from the bank yet. */
   notRequestedAmount: number
   /** True when installments were configured but do not add up to the total. */
   installmentMismatch: boolean
@@ -131,6 +141,33 @@ export function calcLineItem(
     ),
   )
 
+  const installmentActualLoanAmount = roundCents(
+    installments.reduce(
+      (sum, inst) =>
+        sum + (inst.paid && inst.source === 'loan' ? Number(inst.amount) : 0),
+      0,
+    ),
+  )
+  const installmentActualOwnAmount = roundCents(
+    installments.reduce(
+      (sum, inst) =>
+        sum + (inst.paid && inst.source === 'own' ? Number(inst.amount) : 0),
+      0,
+    ),
+  )
+  const installmentSimulatedLoanAmount = roundCents(
+    installments.reduce(
+      (sum, inst) => sum + (inst.source === 'loan' ? Number(inst.amount) : 0),
+      0,
+    ),
+  )
+  const installmentSimulatedOwnAmount = roundCents(
+    installments.reduce(
+      (sum, inst) => sum + (inst.source === 'own' ? Number(inst.amount) : 0),
+      0,
+    ),
+  )
+
   // Installments override the single `paid` checkbox entirely.
   const paidAmount = hasInstallments
     ? installmentPaidTotal
@@ -145,23 +182,50 @@ export function calcLineItem(
   // Same rule for the bank: each installment is requested separately, so the
   // line-item flag is only meaningful when there is no schedule.
   const isRequestedFromBank = hasInstallments
-    ? installments.every((inst) => inst.requested_from_bank)
+    ? installments
+        .filter((inst) => inst.source === 'loan')
+        .every((inst) => inst.requested_from_bank)
     : item.requested_from_bank
 
   // The simulation commits the full future cost. With installments configured,
   // the schedule is the source of truth for what will be invoiced.
   const simulatedAmount = hasInstallments ? installmentTotal : total
+  const actualLoanAmount = hasInstallments
+    ? installmentActualLoanAmount
+    : item.source === 'loan'
+      ? paidAmount
+      : 0
+  const actualOwnAmount = hasInstallments
+    ? installmentActualOwnAmount
+    : item.source === 'own'
+      ? paidAmount
+      : 0
+  const simulatedLoanAmount = hasInstallments
+    ? installmentSimulatedLoanAmount
+    : item.source === 'loan'
+      ? simulatedAmount
+      : 0
+  const simulatedOwnAmount = hasInstallments
+    ? installmentSimulatedOwnAmount
+    : item.source === 'own'
+      ? simulatedAmount
+      : 0
   const outstandingAmount = roundCents(Math.max(simulatedAmount - paidAmount, 0))
 
   const notRequestedAmount = hasInstallments
     ? roundCents(
         installments.reduce(
           (sum, inst) =>
-            sum + (!inst.paid && !inst.requested_from_bank ? Number(inst.amount) : 0),
+            sum +
+            (!inst.paid &&
+            !inst.requested_from_bank &&
+            inst.source === 'loan'
+              ? Number(inst.amount)
+              : 0),
           0,
         ),
       )
-    : item.requested_from_bank
+    : item.source === 'own' || item.requested_from_bank
       ? 0
       : outstandingAmount
 
@@ -172,8 +236,12 @@ export function calcLineItem(
     installmentTotal,
     installmentPaidTotal,
     paidAmount,
+    actualLoanAmount,
+    actualOwnAmount,
     outstandingAmount,
     simulatedAmount,
+    simulatedLoanAmount,
+    simulatedOwnAmount,
     isPaid,
     isRequestedFromBank,
     notRequestedAmount,
@@ -221,21 +289,14 @@ export function calcTotals({
     activeCount += 1
 
     const calc = calcLineItem(item, item.installments)
-    const isLoan = item.source === 'loan'
-
-    if (isLoan) {
-      actualLoanUsed += calc.paidAmount
-      simulatedLoanUsed += calc.simulatedAmount
-    } else {
-      actualOwnUsed += calc.paidAmount
-      simulatedOwnUsed += calc.simulatedAmount
-    }
+    actualLoanUsed += calc.actualLoanAmount
+    actualOwnUsed += calc.actualOwnAmount
+    simulatedLoanUsed += calc.simulatedLoanAmount
+    simulatedOwnUsed += calc.simulatedOwnAmount
 
     totalActive += calc.simulatedAmount
     totalOutstanding += calc.outstandingAmount
-    if (isLoan) {
-      totalNotYetRequested += calc.notRequestedAmount
-    }
+    totalNotYetRequested += calc.notRequestedAmount
   }
 
   return {
@@ -267,7 +328,6 @@ export function collectDeadlines(items: Array<LineItem>): Array<DeadlineEntry> {
       lineItemDescription: item.description,
       lineItemType: item.type,
       supplierId: item.supplier_id,
-      source: item.source,
     }
 
     if (item.installments.length > 0) {
@@ -279,6 +339,7 @@ export function collectDeadlines(items: Array<LineItem>): Array<DeadlineEntry> {
           ...base,
           // Each installment is requested from the bank on its own.
           requestedFromBank: inst.requested_from_bank,
+          source: inst.source,
           key: `inst-${inst.id}`,
           installmentLabel: inst.label || 'Schijf',
           amount: roundCents(Number(inst.amount)),
@@ -296,6 +357,7 @@ export function collectDeadlines(items: Array<LineItem>): Array<DeadlineEntry> {
     entries.push({
       ...base,
       requestedFromBank: item.requested_from_bank,
+      source: item.source,
       key: `item-${item.id}`,
       installmentLabel: null,
       amount: roundCents(Number(item.amount_incl_vat)),

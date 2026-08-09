@@ -338,6 +338,7 @@ function WorksPage() {
                           // Inherit the line-item flag the schedule takes over
                           // from, so nothing silently reverts to "not requested".
                           requested_from_bank: item.requested_from_bank,
+                          source: item.source,
                           sort_order: item.installments.length + index,
                         })
                       })

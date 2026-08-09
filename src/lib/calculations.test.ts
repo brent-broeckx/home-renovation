@@ -54,6 +54,7 @@ function makeInstallment(
     label: 'Schijf',
     amount: 0,
     percentage: null,
+    source: 'loan',
     due_date: null,
     paid: false,
     requested_from_bank: false,
@@ -140,6 +141,25 @@ describe('calcLineItem', () => {
     expect(fully.notRequestedAmount).toBe(0)
   })
 
+  it('ignores own-funded installments for the bank summary', () => {
+    const item = makeItem({ requested_from_bank: false })
+    const calc = calcLineItem(item, [
+      makeInstallment(item.id, {
+        amount: 605,
+        source: 'loan',
+        requested_from_bank: true,
+      }),
+      makeInstallment(item.id, {
+        amount: 605,
+        source: 'own',
+        requested_from_bank: false,
+      }),
+    ])
+
+    expect(calc.isRequestedFromBank).toBe(true)
+    expect(calc.notRequestedAmount).toBe(0)
+  })
+
   it('does not ask the bank again for installments that are already paid', () => {
     const item = makeItem()
     const calc = calcLineItem(item, [
@@ -202,6 +222,44 @@ describe('calcTotals', () => {
     expect(totals.simulatedLoan.used).toBe(1_210)
     expect(totals.simulatedOwn.used).toBe(6_050)
     expect(totals.simulatedOwn.remaining).toBe(13_950)
+  })
+
+  it('routes installment balances by each installment source', () => {
+    const item = makeItem({ source: 'loan', amount_excl_vat: 1_000 })
+    item.installments = [
+      makeInstallment(item.id, {
+        amount: 700,
+        source: 'loan',
+        paid: true,
+        requested_from_bank: true,
+      }),
+      makeInstallment(item.id, {
+        amount: 510,
+        source: 'own',
+        paid: true,
+        requested_from_bank: false,
+      }),
+    ]
+
+    const totals = calcTotals({ items: [item], ...BUDGET })
+
+    expect(totals.actualLoan.used).toBe(700)
+    expect(totals.actualOwn.used).toBe(510)
+    expect(totals.simulatedLoan.used).toBe(700)
+    expect(totals.simulatedOwn.used).toBe(510)
+    expect(totals.totalNotYetRequested).toBe(0)
+  })
+
+  it('only reports not-requested bank money for loan-funded installments', () => {
+    const item = makeItem({ source: 'loan' })
+    item.installments = [
+      makeInstallment(item.id, { amount: 600, source: 'loan' }),
+      makeInstallment(item.id, { amount: 610, source: 'own' }),
+    ]
+
+    const totals = calcTotals({ items: [item], ...BUDGET })
+
+    expect(totals.totalNotYetRequested).toBe(600)
   })
 
   it('excludes disabled rows from every balance', () => {

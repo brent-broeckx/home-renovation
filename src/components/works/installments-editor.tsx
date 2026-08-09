@@ -6,7 +6,11 @@ import { MoneyInput } from '#/components/money-input'
 import { StatusToggle } from '#/components/status-toggle'
 import { formatCurrency, roundCents } from '#/lib/format'
 import { cn } from '#/lib/utils'
-import type { InstallmentRow, SettingsRow } from '#/lib/database.types'
+import type {
+  FundingSource,
+  InstallmentRow,
+  SettingsRow,
+} from '#/lib/database.types'
 
 /** Common Belgian contractor schedules, one click away. */
 const PRESETS: Array<{
@@ -76,7 +80,7 @@ export function InstallmentsEditor({
         <p className="text-xs text-muted-foreground">
           Nog geen schijven. Zodra je schijven toevoegt, nemen ze de knoppen
           &quot;Bank&quot; en &quot;Betaald&quot; van deze regel over: elke
-          schijf wordt apart bij de bank aangevraagd en betaald.
+          schijf kiest apart tussen lening/eigen geld, bankaanvraag en betaald.
         </p>
       ) : null}
 
@@ -159,12 +163,25 @@ export function InstallmentsEditor({
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5">
+              <SourceSwitch
+                value={inst.source}
+                disabled={disabled}
+                onChange={(source) =>
+                  onSave({
+                    id: inst.id,
+                    line_item_id: inst.line_item_id,
+                    source,
+                    requested_from_bank:
+                      source === 'own' ? false : inst.requested_from_bank,
+                  })
+                }
+              />
               <StatusToggle
                 icon={Landmark}
                 label="Bank"
                 tone="violet"
-                active={inst.requested_from_bank}
-                disabled={disabled}
+                active={inst.source === 'loan' && inst.requested_from_bank}
+                disabled={disabled || inst.source === 'own'}
                 onToggle={(next) =>
                   onSave({
                     id: inst.id,
@@ -243,6 +260,40 @@ export function InstallmentsEditor({
           </span>
         ) : null}
       </div>
+    </div>
+  )
+}
+
+function SourceSwitch({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: FundingSource
+  disabled: boolean
+  onChange: (value: FundingSource) => void
+}) {
+  return (
+    <div className="inline-flex h-8 shrink-0 overflow-hidden rounded-full border text-xs font-medium">
+      {(['loan', 'own'] as const).map((option) => (
+        <button
+          key={option}
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(option)}
+          aria-pressed={value === option}
+          className={cn(
+            'px-2.5 transition-colors disabled:cursor-not-allowed',
+            value === option
+              ? option === 'loan'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-indigo-500 text-white'
+              : 'bg-background text-muted-foreground hover:bg-muted',
+          )}
+        >
+          {option === 'loan' ? 'Lening' : 'Eigen'}
+        </button>
+      ))}
     </div>
   )
 }

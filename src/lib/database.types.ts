@@ -65,6 +65,8 @@ export interface InstallmentRow {
   amount: number
   /** Optional % of the parent total; when set, `amount` is derived from it. */
   percentage: number | null
+  /** Funding source for this specific installment. */
+  source: FundingSource
   due_date: string | null
   paid: boolean
   /** Requested from the bank for this specific installment. */
